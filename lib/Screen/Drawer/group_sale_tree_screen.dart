@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:graphview/GraphView.dart';
 
+import '../../Model/group_tree_model.dart';
 import '../../Utils/app_color.dart';
+import 'package:http/http.dart' as http;
 class GroupSaleTreeScreen extends StatefulWidget {
   const GroupSaleTreeScreen({Key? key}) : super(key: key);
 
@@ -13,6 +16,25 @@ class GroupSaleTreeScreen extends StatefulWidget {
 }
 
 class _GroupSaleTreeScreenState extends State<GroupSaleTreeScreen> {
+  var json = {
+    'nodes': [
+      {'id': 1, 'label': 'circle'},
+      {'id': 2, 'label': 'ellipse'},
+      {'id': 3, 'label': 'database'},
+      {'id': 4, 'label': 'box'},
+      {'id': 5, 'label': 'diamond'},
+      {'id': 6, 'label': 'dot'},
+      {'id': 7, 'label': 'square'},
+    ],
+    'edges': [
+      {'from': 1, 'to': 2},
+      {'from': 1, 'to': 3},
+      {'from': 2, 'to': 4},
+      {'from': 2, 'to': 5},
+      {'from': 3, 'to': 6},
+      {'from': 3, 'to': 7},
+    ]
+  };
 
   @override
   void initState() {
@@ -21,29 +43,13 @@ class _GroupSaleTreeScreenState extends State<GroupSaleTreeScreen> {
       DeviceOrientation.landscapeRight,
       DeviceOrientation.landscapeLeft,
     ]);
-    final node1 = Node.Id(1);
-    final node2 = Node.Id(2);
-    final node3 = Node.Id(3);
-    final node4 = Node.Id(4);
-    final node5 = Node.Id(5);
-    final node6 = Node.Id(6);
-    final node8 = Node.Id(7);
-    final node7 = Node.Id(8);
-    final node9 = Node.Id(9);
-    final node10 = Node.Id(10);
-    final node11 = Node.Id(11);
-    final node12 = Node.Id(12);
-    graph.addEdge(node1, node2);
-    graph.addEdge(node1, node3, paint: Paint()..color = Colors.red);
-    graph.addEdge(node1, node4, paint: Paint()..color = Colors.blue);
-    graph.addEdge(node2, node5);
-    graph.addEdge(node2, node6);
-    graph.addEdge(node6, node7, paint: Paint()..color = Colors.red);
-    graph.addEdge(node6, node8, paint: Paint()..color = Colors.red);
-    graph.addEdge(node4, node9);
-    graph.addEdge(node4, node10, paint: Paint()..color = Colors.black);
-    graph.addEdge(node4, node11, paint: Paint()..color = Colors.red);
-    graph.addEdge(node11, node12);
+   getTreeData();
+    var edges = json['edges']!;
+    for (var element in edges) {
+      var fromNodeId = element['from'];
+      var toNodeId = element['to'];
+      graph.addEdge(Node.Id(fromNodeId), Node.Id(toNodeId));
+    }
 
     builder
       ..siblingSeparation = (100)
@@ -51,6 +57,7 @@ class _GroupSaleTreeScreenState extends State<GroupSaleTreeScreen> {
       ..subtreeSeparation = (150)
       ..orientation = (BuchheimWalkerConfiguration.ORIENTATION_TOP_BOTTOM);
   }
+
   @override
   void dispose() {
     SystemChrome.setPreferredOrientations([
@@ -61,50 +68,132 @@ class _GroupSaleTreeScreenState extends State<GroupSaleTreeScreen> {
     ]);
     super.dispose();
   }
+
   final Graph graph = Graph()..isTree = true;
   BuchheimWalkerConfiguration builder = BuchheimWalkerConfiguration();
 
   Random r = Random();
 
-  Widget rectangleWidget(int? a) {
-    return InkWell(
-      onTap: () {
-        print('clicked');
-      },
-      child: Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4),
-            boxShadow: [
-              BoxShadow(color: Colors.blue[100]!, spreadRadius: 1),
-            ],
+  Widget rectangleWidget(GroupTreeModel model,int index) {
+    String name="";
+    String userNumber="";
+    if(index==1)
+      {
+        name=model.parentName!;
+        userNumber=model.parentIDNo!;
+      }
+    else if(index==2)
+      {
+        name=model.parentFirstChildName!;
+        userNumber=model.parentFirstChildIDNo!;
+      }
+    else if(index==3)
+      {
+        name=model.parentSecondChildName!;
+        userNumber=model.parentSecondChildIDNo!;
+      }
+    else if(index==4)
+      {
+        name=model.parentSubChildListForFristChild!.parentFirstChildName!;
+        userNumber=model.parentSubChildListForFristChild!.parentFirstChildIDNo!;
+      }
+    else if(index==5)
+      {
+        name=model.parentSubChildListForSecondChild!.parentFirstChildName!;
+        userNumber=model.parentSubChildListForSecondChild!.parentFirstChildIDNo!;
+      }
+    else if(index==6)
+      {
+        name=model.nestedParentSubChildListForFristChild!.parentFirstChildName!;
+        userNumber=model.nestedParentSubChildListForFristChild!.parentFirstChildIDNo!;
+      }
+    else if(index==7)
+      {
+        name=model.nestedParentSubChildListForThirdChild!.parentFirstChildName!;
+        userNumber=model.nestedParentSubChildListForThirdChild!.parentFirstChildIDNo!;
+      }
+    return Column(
+      children: [
+        CircleAvatar(
+          backgroundColor: Colors.blue.withAlpha(50),
+          child: const Icon(
+            Icons.person_outline_outlined,
+            color: Colors.blue,
           ),
-          child: Text('Node ${a}')),
+        ),
+        Text(
+          name,
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          "($userNumber )",
+          style: const TextStyle(color: Colors.red),
+        )
+      ],
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: AppColor.primary,
-        title: const Text("Group Sales Tree"),
-      ),
-      body: SingleChildScrollView(
-        child: GraphView(
-          graph: graph,
-          algorithm: BuchheimWalkerAlgorithm(builder, TreeEdgeRenderer(builder)),
-          paint: Paint()
-            ..color = Colors.green
-            ..strokeWidth = 1
-            ..style = PaintingStyle.stroke,
-          builder: (Node node) {
-            // I can decide what widget should be shown here based on the id
-            var a = node.key!.value as int?;
-            return rectangleWidget(a);
-          },
-        )
-      ),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: AppColor.primary,
+          title: const Text("Group Sales Tree"),
+        ),
+        body: loading==true?const Center(child: CircularProgressIndicator()):Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Expanded(
+                child: InteractiveViewer(
+                    constrained: false,
+                    boundaryMargin: const EdgeInsets.all(100),
+                    minScale: 0.01,
+                    maxScale: 5.6,
+                    child: GraphView(
+                      graph: graph,
+                      algorithm: BuchheimWalkerAlgorithm(
+                          builder, TreeEdgeRenderer(builder)),
+                      paint: Paint()
+                        ..color = Colors.lightBlueAccent
+                        ..strokeWidth = 1
+                        ..style = PaintingStyle.stroke,
+                      builder: (Node node) {
+                        var a = node.key!.value as int?;
+                        return rectangleWidget(data!,a!);
+                      },
+                    )),
+              ),
+            ]));
+  }
+
+
+  GroupTreeModel? data;
+  bool loading=false;
+  Future<GroupTreeModel> getTreeData() async {
+    final url = Uri.parse("http://demoby.arityinfoway.com:8991/api/NaswizAPI/GroupSalesTree?p_AppMstRegNo=P1606&p_AppMstId=81874");
+    setState(() {
+       loading=true;
+    });
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJOYW1lIjoiTmFzd2l6YWRtaW4ifQ.Ab5sb0iRkeUYMv1kqsFTRoVxyLlegkbwFKrZ4HklgAc'
+      },
     );
+    setState(() {
+      loading=false;
+    });
+    if (response.statusCode == 200) {
+      setState((){
+        data=GroupTreeModel.fromJson(jsonDecode(response.body));
+      });
+      return GroupTreeModel.fromJson(jsonDecode(response.body));
+
+    } else {
+      throw Exception('Failed to update post');
+    }
   }
 }
